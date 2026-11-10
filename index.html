@@ -43,6 +43,7 @@ var FORMS = {
 var CAMPOS = {
   navegador: "Si es un bug, ¿en qué navegador se detectó?",        // desplegable: Chrome, Safari, Edge, Brave, Firefox
   sistema:   "Si es un bug, ¿en qué sistema operativo se detectó?", // desplegable: Windows, Mac, IOS, Android
+  pantalla:  "",                   // (opcional) campo de TEXTO para el tamaño de pantalla, ej. "390x844 (ventana 390x664) @3x"
   detalle:   ""                    // (opcional) campo de TEXTO para el detalle completo
 };
 
@@ -83,9 +84,12 @@ function detectar() {
   if (modelo) partes.push(modelo);
   if (sistema) partes.push(sistema + (sistemaVer ? " " + sistemaVer : ""));
   partes.push((navegador || otro || "Navegador desconocido") + (navVer ? " " + navVer : ""));
-  partes.push("pantalla " + screen.width + "x" + screen.height);
+  var pantalla = screen.width + "x" + screen.height +
+    " (ventana " + window.innerWidth + "x" + window.innerHeight + ")" +
+    " @" + (Math.round((window.devicePixelRatio || 1) * 100) / 100) + "x";
+  partes.push("pantalla " + pantalla);
 
-  return { dispositivo: dispositivo, sistema: sistema, navegador: navegador, detalle: partes.join(" - "), ua: ua };
+  return { dispositivo: dispositivo, sistema: sistema, navegador: navegador, pantalla: pantalla, detalle: partes.join(" - "), ua: ua };
 }
 
 function armarLink(base, d) {
@@ -93,6 +97,7 @@ function armarLink(base, d) {
   function add(nombre, valor) { if (nombre && valor) params.push(encodeURIComponent(nombre) + "=" + encodeURIComponent(valor)); }
   add(CAMPOS.navegador, d.navegador);
   add(CAMPOS.sistema, d.sistema);
+  add(CAMPOS.pantalla, d.pantalla);
   add(CAMPOS.detalle, d.detalle);
   return params.length ? base + (base.indexOf("?") === -1 ? "?" : "&") + params.join("&") : base;
 }
@@ -122,6 +127,7 @@ function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return {"&"
       "<tr><td>Dispositivo</td><td>" + esc(d.dispositivo) + "</td></tr>" +
       "<tr><td>Sistema</td><td>" + esc(d.sistema || "(no detectado)") + "</td></tr>" +
       "<tr><td>Navegador</td><td>" + esc(d.navegador || "(no está en las opciones)") + "</td></tr>" +
+      "<tr><td>Pantalla</td><td>" + esc(d.pantalla) + "</td></tr>" +
       "<tr><td>Detalle</td><td>" + esc(d.detalle) + "</td></tr>" +
       "<tr><td>User agent</td><td><code>" + esc(d.ua) + "</code></td></tr>" +
       "</table>" +
