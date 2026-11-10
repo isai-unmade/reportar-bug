@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Reportar un problema</title>
+<style>
+  :root { --bg:#f5f7fb; --text:#1d2433; --muted:#5b6475; --card:#fff; --accent:#2449d3; --border:#dde2ec; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12151c; --text:#e8ebf2; --muted:#9aa3b5; --card:#1b1f29; --accent:#7d97ff; --border:#2c3240; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--text); padding:16px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:24px; max-width:520px; width:100%; }
+  h1 { font-size:18px; margin:0 0 8px; }
+  p { color:var(--muted); margin:0 0 12px; line-height:1.45; }
+  table { width:100%; border-collapse:collapse; font-size:14px; margin:12px 0; }
+  td { border-top:1px solid var(--border); padding:6px 4px; vertical-align:top; word-break:break-all; }
+  td:first-child { color:var(--muted); width:40%; word-break:normal; }
+  a.btn { display:inline-block; background:var(--accent); color:#fff; text-decoration:none; padding:10px 16px; border-radius:10px; font-weight:600; }
+  code { font-size:12px; word-break:break-all; }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <h1>Abriendo el formulario…</h1>
+  <p>Un momento, por favor.</p>
+</div>
+
+<script>
+// ============ CONFIGURACIÓN (lo único que se edita) ============
+
+// Marca (lo que va en ?marca=) → link público de su form de ClickUp.
+// Para agregar un cliente: copia una línea y cambia la marca y el link.
+var FORMS = {
+  "prueba": "https://forms.clickup.com/24547724/f/qd4cc-83154/TZB22LWQSXGQM8SDM1"
+};
+
+// Nombre de cada pregunta oculta TAL CUAL aparece en el link que copia ClickUp
+// (después de marcarla como oculta). Si una queda en "", no se manda.
+var CAMPOS = {
+  navegador: "Navegador",          // desplegable: Chrome, Safari, Edge, Brave, Firefox
+  sistema:   "Sistema operativo",  // desplegable: Windows, Mac, IOS, Android
+  detalle:   ""                    // (opcional) campo de TEXTO para el detalle completo
+};
+
+// ============ DETECCIÓN (no hace falta tocar) ============
+function detectar() {
+  var ua = navigator.userAgent || "";
+  var touchMac = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1; // iPad que se presenta como Mac
+  var m;
+
+  var sistema = "", sistemaVer = "";
+  if (/iPhone|iPad|iPod/.test(ua) || touchMac) {
+    sistema = "IOS";
+    m = ua.match(/OS (\d+)[_.](\d+)/); if (m) sistemaVer = m[1] + "." + m[2];
+  } else if (/Android/.test(ua)) {
+    sistema = "Android";
+    m = ua.match(/Android (\d+(?:\.\d+)?)/); if (m) sistemaVer = m[1];
+  } else if (/Windows/.test(ua)) {
+    sistema = "Windows";
+  } else if (/Mac OS X|Macintosh/.test(ua)) {
+    sistema = "Mac";
+  }
+
+  var navegador = "", navVer = "", otro = "";
+  if ((m = ua.match(/(?:EdgA|EdgiOS|Edg)\/(\d+)/))) { navegador = "Edge"; navVer = m[1]; }
+  else if ((m = ua.match(/(?:FxiOS|Firefox)\/(\d+)/))) { navegador = "Firefox"; navVer = m[1]; }
+  else if (navigator.brave) { navegador = "Brave"; m = ua.match(/Chrome\/(\d+)/); if (m) navVer = m[1]; }
+  else if ((m = ua.match(/SamsungBrowser\/(\d+)/))) { otro = "Samsung Internet"; navVer = m[1]; }
+  else if ((m = ua.match(/(?:CriOS|Chrome)\/(\d+)/))) { navegador = "Chrome"; navVer = m[1]; }
+  else if (/Safari/.test(ua)) { navegador = "Safari"; m = ua.match(/Version\/(\d+(?:\.\d+)?)/); if (m) navVer = m[1]; }
+  if (/Instagram/.test(ua)) otro = "Instagram (navegador interno)";
+  else if (/FBAN|FBAV/.test(ua)) otro = "Facebook (navegador interno)";
+
+  var dispositivo = (/Mobi|Android|iPhone|iPad|iPod/.test(ua) || touchMac) ? "Mobile" : "Desktop";
+  var modelo = /iPad/.test(ua) || touchMac ? "iPad" : /iPhone/.test(ua) ? "iPhone" : "";
+  if (!modelo && sistema === "Android") { m = ua.match(/Android [^;]*; ([^;)]+?)(?: Build|\))/); if (m && m[1] !== "K") modelo = m[1]; }
+
+  var partes = [dispositivo];
+  if (modelo) partes.push(modelo);
+  if (sistema) partes.push(sistema + (sistemaVer ? " " + sistemaVer : ""));
+  partes.push((navegador || otro || "Navegador desconocido") + (navVer ? " " + navVer : ""));
+  partes.push("pantalla " + screen.width + "x" + screen.height);
+
+  return { dispositivo: dispositivo, sistema: sistema, navegador: navegador, detalle: partes.join(" - "), ua: ua };
+}
+
+function armarLink(base, d) {
+  var params = [];
+  function add(nombre, valor) { if (nombre && valor) params.push(encodeURIComponent(nombre) + "=" + encodeURIComponent(valor)); }
+  add(CAMPOS.navegador, d.navegador);
+  add(CAMPOS.sistema, d.sistema);
+  add(CAMPOS.detalle, d.detalle);
+  return params.length ? base + (base.indexOf("?") === -1 ? "?" : "&") + params.join("&") : base;
+}
+
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]; }); }
+
+(function () {
+  var q = new URLSearchParams(location.search);
+  var marca = (q.get("marca") || "").trim().toLowerCase();
+  var base = FORMS[marca];
+  var card = document.getElementById("card");
+
+  if (!base) {
+    card.innerHTML = "<h1>No encontramos tu formulario</h1><p>Este link no tiene una marca válida. Pide a tu contacto de Unmade el link correcto.</p>";
+    return;
+  }
+
+  var d = detectar();
+  var destino = armarLink(base, d);
+
+  if (q.get("debug") === "1") {
+    card.innerHTML =
+      "<h1>Modo prueba (no redirige)</h1>" +
+      "<p>Esto es lo que la página detectó y lo que mandaría al form.</p>" +
+      "<table>" +
+      "<tr><td>Marca</td><td>" + esc(marca) + "</td></tr>" +
+      "<tr><td>Dispositivo</td><td>" + esc(d.dispositivo) + "</td></tr>" +
+      "<tr><td>Sistema</td><td>" + esc(d.sistema || "(no detectado)") + "</td></tr>" +
+      "<tr><td>Navegador</td><td>" + esc(d.navegador || "(no está en las opciones)") + "</td></tr>" +
+      "<tr><td>Detalle</td><td>" + esc(d.detalle) + "</td></tr>" +
+      "<tr><td>User agent</td><td><code>" + esc(d.ua) + "</code></td></tr>" +
+      "</table>" +
+      "<p><code>" + esc(destino) + "</code></p>" +
+      "<a class='btn' href='" + esc(destino) + "'>Abrir el form</a>";
+    return;
+  }
+
+  location.replace(destino);
+})();
+</script>
+</body>
+</html>
