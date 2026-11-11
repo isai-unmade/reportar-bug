@@ -46,7 +46,7 @@ var FORMS = {
 // Nombre de cada pregunta del form TAL CUAL aparece en ClickUp (con "¿", acentos, etc.).
 // Si una queda en "", ese dato no se manda.
 var CAMPOS = {
-  navegador: "¿En qué navegador se detectó?",        // desplegable: Chrome, Safari, Edge, Brave, Firefox
+  navegador: "¿En qué navegador se detectó?",        // desplegable: Chrome, Safari, Edge, Brave, Firefox, Samsung Browser, Other
   sistema:   "¿En qué sistema operativo se detectó?", // desplegable: Windows, Mac, IOS, Android
   modelo:    "Modelo",   // TEXTO, ej. "Samsung Galaxy S23 (posible) · SM-S911B · Android 14 · Chrome 141"
   pantalla:  "Pantalla"  // TEXTO, ej. "393x852 @3x · visible 393x659 · 100dvh = 659px (barras visibles 659 / ocultas 739)"
@@ -116,12 +116,20 @@ function detectar(hints) {
   if ((m = ua.match(/(?:EdgA|EdgiOS|Edg)\/(\d+)/))) { navegador = navNombre = "Edge"; navVer = m[1]; }
   else if ((m = ua.match(/(?:FxiOS|Firefox)\/(\d+)/))) { navegador = navNombre = "Firefox"; navVer = m[1]; }
   else if (navigator.brave) { navegador = navNombre = "Brave"; m = ua.match(/Chrome\/(\d+)/); if (m) navVer = m[1]; }
-  else if ((m = ua.match(/SamsungBrowser\/(\d+)/))) { navNombre = "Samsung Internet"; navVer = m[1]; }
+  else if ((m = ua.match(/OPR\/(\d+)|OPiOS\/(\d+)/))) { navNombre = "Opera"; navVer = m[1] || m[2]; }
+  else if ((m = ua.match(/DuckDuckGo\/(\d+)|Ddg\/(\d+)/))) { navNombre = "DuckDuckGo"; navVer = m[1] || m[2]; }
+  else if ((m = ua.match(/SamsungBrowser\/(\d+)/))) { navegador = "Samsung Browser"; navNombre = "Samsung Internet"; navVer = m[1]; }
   else if ((m = ua.match(/(?:CriOS|Chrome)\/(\d+)/))) { navegador = navNombre = "Chrome"; navVer = m[1]; }
   else if (/Safari/.test(ua)) { navegador = navNombre = "Safari"; m = ua.match(/Version\/(\d+(?:\.\d+)?)/); if (m) navVer = m[1]; }
-  if (/Instagram/.test(ua)) navNombre = "Instagram (navegador interno)";
-  else if (/FBAN|FBAV/.test(ua)) navNombre = "Facebook (navegador interno)";
-  else if (/WhatsApp/.test(ua)) navNombre = "WhatsApp (navegador interno)";
+  var interno = "";
+  if (/Instagram/.test(ua)) interno = "Instagram";
+  else if (/FBAN|FBAV|FB_IAB/.test(ua)) interno = "Facebook";
+  else if (/WhatsApp/.test(ua)) interno = "WhatsApp";
+  else if (/TikTok|musical_ly|BytedanceWebview/.test(ua)) interno = "TikTok";
+  if (interno) { navegador = ""; navNombre = interno + " (navegador interno)"; }
+  // Lo que no esté en las opciones del form (Opera, navegadores internos, desconocidos) va como "Other";
+  // el nombre real queda en el campo Modelo.
+  if (!navegador) navegador = "Other";
 
   // --- Sistema y versión ---
   var sistema = "", sistemaVer = "";
@@ -166,7 +174,7 @@ function detectar(hints) {
     }
   } else if (sistema === "Android") {
     var cod = (hints && hints.model) || "";
-    if (!cod) { m = ua.match(/Android [^;]*; ([^;)]+?)(?: Build|\))/); if (m && m[1] !== "K") cod = m[1].trim(); }
+    if (!cod) { m = ua.match(/Android [^;]*; ([^;)]+?)(?: Build|\))/); if (m && m[1] !== "K") cod = m[1].replace(/^SAMSUNG\s+/i, "").trim(); }
     if (cod) modelo = nombreSamsung(cod) ? nombreSamsung(cod) + " · " + cod : cod;
     else modelo = "Android (modelo no disponible en " + (navNombre || "este navegador") + ")";
   } else {
