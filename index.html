@@ -46,6 +46,7 @@ var FORMS = {
 // Nombre de cada pregunta del form TAL CUAL aparece en ClickUp (con "¿", acentos, etc.).
 // Si una queda en "", ese dato no se manda.
 var CAMPOS = {
+  dispositivo: "¿En qué dispositivo(s) aplica: mobile, desktop o ambos?", // VISIBLE: se prellena Mobile o Desktop; el cliente puede cambiarlo a Both
   navegador: "¿En qué navegador se detectó?",        // desplegable: Chrome, Safari, Edge, Brave, Firefox, Samsung Browser, Other
   sistema:   "¿En qué sistema operativo se detectó?", // desplegable: Windows, Mac, IOS, Android
   modelo:    "Modelo",   // TEXTO, ej. "Samsung Galaxy S23 (posible) · SM-S911B · Android 14 · Chrome 141"
@@ -200,6 +201,7 @@ function detectar(hints) {
 function armarLink(base, d) {
   var params = [];
   function add(nombre, valor) { if (nombre && valor) params.push(encodeURIComponent(nombre) + "=" + encodeURIComponent(valor)); }
+  add(CAMPOS.dispositivo, d.dispositivo);
   add(CAMPOS.navegador, d.navegador);
   add(CAMPOS.sistema, d.sistema);
   add(CAMPOS.modelo, d.modelo);
@@ -235,7 +237,7 @@ function fila(k, v, campo) {
       "<p>Esto es lo que la página detectó y en qué campo del form de ClickUp quedaría.</p>" +
       "<table>" +
       fila("Marca", marca) +
-      fila("Dispositivo", d.dispositivo) +
+      fila("Dispositivo", d.dispositivo, CAMPOS.dispositivo) +
       fila("Sistema", d.sistema, CAMPOS.sistema) +
       fila("Navegador", d.navegador || "(no está en las opciones del form)", CAMPOS.navegador) +
       fila("Modelo", d.modelo, CAMPOS.modelo) +
