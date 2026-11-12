@@ -46,6 +46,7 @@ var FORMS = {
 // Nombre de cada pregunta del form TAL CUAL aparece en ClickUp (con "¿", acentos, etc.).
 // Si una queda en "", ese dato no se manda.
 var CAMPOS = {
+  fecha:     "Fecha de Solicitud",  // FECHA: se pone el día en que se abre el form (hora de Monterrey)
   dispositivo: "¿En qué dispositivo(s) aplica: mobile, desktop o ambos?", // VISIBLE: se prellena Mobile o Desktop; el cliente puede cambiarlo a Both
   navegador: "¿En qué navegador se detectó?",        // desplegable: Chrome, Safari, Edge, Brave, Firefox, Samsung Browser, Other
   sistema:   "¿En qué sistema operativo se detectó?", // desplegable: Windows, Mac, IOS, Android
@@ -179,7 +180,7 @@ function detectar(hints) {
     if (cod) modelo = nombreSamsung(cod) ? nombreSamsung(cod) + " · " + cod : cod;
     else modelo = "Android (modelo no disponible en " + (navNombre || "este navegador") + ")";
   } else {
-    modelo = "Computadora";
+    modelo = "Desktop";
   }
 
   var textoModelo = [modelo,
@@ -190,17 +191,26 @@ function detectar(hints) {
   // --- Pantalla y ventana (dvh) ---
   var dvh = medir("m-dvh"), svh = medir("m-svh"), lvh = medir("m-lvh");
   var vw = window.innerWidth, vh = window.innerHeight;
-  var textoPantalla = screen.width + "x" + screen.height + " @" + dpr + "x" +
-    " · visible " + vw + "x" + (dvh || vh) +
-    (dvh ? " · 100dvh = " + dvh + "px (barras visibles " + svh + " / ocultas " + lvh + ")" : " · (este navegador no soporta dvh)");
+  var textoPantalla = esMovil
+    ? screen.width + "x" + screen.height + " @" + dpr + "x" +
+      " · visible " + vw + "x" + (dvh || vh) +
+      (dvh ? " · 100dvh = " + dvh + "px (barras visibles " + svh + " / ocultas " + lvh + ")" : " · (este navegador no soporta dvh)")
+    : vw + "x" + vh + " (área visible del navegador)";
+
+  // Fecha de hoy en Monterrey, guardada al mediodía de Monterrey (UTC-6) para que no cambie de día en ClickUp.
+  var partesFecha = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Monterrey", year: "numeric", month: "2-digit", day: "2-digit" })
+    .format(new Date()).split("-");
+  var fecha = Date.UTC(+partesFecha[0], +partesFecha[1] - 1, +partesFecha[2], 18, 0, 0);
+  var fechaTexto = partesFecha[2] + "/" + partesFecha[1] + "/" + partesFecha[0];
 
   return { dispositivo: dispositivo, sistema: sistema, navegador: navegador, modelo: textoModelo, pantalla: textoPantalla,
-           ua: ua, hints: hints };
+           fecha: fecha, fechaTexto: fechaTexto, ua: ua, hints: hints };
 }
 
 function armarLink(base, d) {
   var params = [];
   function add(nombre, valor) { if (nombre && valor) params.push(encodeURIComponent(nombre) + "=" + encodeURIComponent(valor)); }
+  add(CAMPOS.fecha, String(d.fecha));
   add(CAMPOS.dispositivo, d.dispositivo);
   add(CAMPOS.navegador, d.navegador);
   add(CAMPOS.sistema, d.sistema);
@@ -237,6 +247,7 @@ function fila(k, v, campo) {
       "<p>Esto es lo que la página detectó y en qué campo del form de ClickUp quedaría.</p>" +
       "<table>" +
       fila("Marca", marca) +
+      fila("Fecha", d.fechaTexto + " (Monterrey)", CAMPOS.fecha) +
       fila("Dispositivo", d.dispositivo, CAMPOS.dispositivo) +
       fila("Sistema", d.sistema, CAMPOS.sistema) +
       fila("Navegador", d.navegador || "(no está en las opciones del form)", CAMPOS.navegador) +
