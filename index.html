@@ -189,7 +189,8 @@ function detectar(hints) {
 
   // --- Pantalla y ventana (dvh) ---
   var dvh = medir("m-dvh"), svh = medir("m-svh"), lvh = medir("m-lvh");
-  var vw = window.innerWidth, vh = window.innerHeight;
+  var de = document.documentElement || {};
+  var vw = window.innerWidth || de.clientWidth || screen.width, vh = window.innerHeight || de.clientHeight || screen.height;
   var textoPantalla = esMovil
     ? screen.width + "x" + screen.height + " @" + dpr + "x" +
       " · visible " + vw + "x" + (dvh || vh) +
