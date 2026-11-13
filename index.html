@@ -40,17 +40,20 @@
 
 // Marca (lo que va en ?marca=) → link público de su form de ClickUp.
 var FORMS = {
-  "prueba": "https://forms.clickup.com/24547724/f/qd4cc-93794/O3SCR5EWWYJ75LTO3K"  // form de pruebas (lista F4 de prueba)
+  "prueba": "https://forms.clickup.com/24547724/f/qd4cc-93794/O3SCR5EWWYJ75LTO3K",             // form de pruebas (lista F4 de prueba)
+  "visiones-colibri": "https://forms.clickup.com/24547724/f/qd4cc-93894/WLYOXHFCFZLXP6JAWY"    // Visiones Colibrí
 };
 
 // Nombre de cada pregunta del form TAL CUAL aparece en ClickUp (con "¿", acentos, etc.).
-// Si una queda en "", ese dato no se manda.
+// ClickUp prellena por el nombre VISIBLE de la pregunta (no por el nombre del campo).
+// Cada dato acepta varios nombres posibles: se mandan todos y ClickUp ignora los que no existen en ese form.
+// Si una lista queda vacía, ese dato no se manda.
 var CAMPOS = {
-  dispositivo: "¿En qué dispositivo(s) aplica: mobile, desktop o ambos?", // VISIBLE: se prellena Mobile o Desktop; el cliente puede cambiarlo a Both
-  navegador: "¿En qué navegador se detectó?",        // desplegable: Chrome, Safari, Edge, Brave, Firefox, Samsung Browser, Other
-  sistema:   "¿En qué sistema operativo se detectó?", // desplegable: Windows, Mac, IOS, Android
-  modelo:    "Modelo",   // TEXTO, ej. "Samsung Galaxy S23 (posible) · SM-S911B · Android 14 · Chrome 141"
-  pantalla:  "Pantalla"  // TEXTO, ej. "393x852 @3x · visible 393x659 · 100dvh = 659px (barras visibles 659 / ocultas 739)"
+  dispositivo: ["¿En qué dispositivo(s) aplica: mobile, desktop o ambos?"],          // VISIBLE: se prellena Mobile o Desktop; el cliente puede cambiarlo a Both
+  navegador: ["¿En qué navegador se detectó?", "Browser"],                            // desplegable: Chrome, Safari, Edge, Brave, Firefox, Samsung Browser, Other
+  sistema:   ["¿En qué sistema operativo se detectó?", "Sistema Operativo"],          // desplegable: Windows, Mac, IOS, Android
+  modelo:    ["Modelo"],   // TEXTO, ej. "Samsung Galaxy S23 (posible) · SM-S911B · Android 14 · Chrome 141"
+  pantalla:  ["Pantalla"]  // TEXTO, ej. "393x852 @3x · visible 393x659 · 100dvh = 659px (barras visibles 659 / ocultas 739)"
 };
 
 // ===================== TABLAS DE APOYO =====================
@@ -203,7 +206,12 @@ function detectar(hints) {
 
 function armarLink(base, d) {
   var params = [];
-  function add(nombre, valor) { if (nombre && valor) params.push(encodeURIComponent(nombre) + "=" + encodeURIComponent(valor)); }
+  function add(nombres, valor) {
+    if (!valor) return;
+    [].concat(nombres || []).forEach(function (nombre) {
+      if (nombre) params.push(encodeURIComponent(nombre) + "=" + encodeURIComponent(valor));
+    });
+  }
   add(CAMPOS.dispositivo, d.dispositivo);
   add(CAMPOS.navegador, d.navegador);
   add(CAMPOS.sistema, d.sistema);
@@ -214,7 +222,8 @@ function armarLink(base, d) {
 
 function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); }
 function fila(k, v, campo) {
-  var destino = campo === undefined ? "" : (campo ? "<br><code>→ " + esc(campo) + "</code>" : "<br><code>→ (sin campo en el form todavía)</code>");
+  var nombres = [].concat(campo || []).filter(Boolean);
+  var destino = campo === undefined ? "" : (nombres.length ? "<br><code>→ " + esc(nombres.join("  ó  ")) + "</code>" : "<br><code>→ (sin campo en el form todavía)</code>");
   return "<tr><td>" + esc(k) + "</td><td>" + esc(v || "(no detectado)") + destino + "</td></tr>";
 }
 
